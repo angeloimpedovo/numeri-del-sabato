@@ -5,11 +5,13 @@ export const WHEELS = ['Bari', 'Cagliari', 'Firenze', 'Genova', 'Milano', 'Napol
 const rand = (n) => crypto.getRandomValues(new Uint32Array(1))[0] % n
 
 // draws: array di array di numeri (1..90), dal più vecchio al più recente
-export function stats(draws) {
+export function stats(draws, recentN = 100) {
   const freq = Array(91).fill(0)
+  const recent = Array(91).fill(0)
+  draws.slice(-recentN).forEach((nums) => nums.forEach((n) => recent[n]++))
   const delay = Array(91).fill(draws.length)
   draws.forEach((nums, i) => nums.forEach((n) => { freq[n]++; delay[n] = draws.length - 1 - i }))
-  return Array.from({ length: 90 }, (_, k) => ({ n: k + 1, freq: freq[k + 1], delay: delay[k + 1] }))
+  return Array.from({ length: 90 }, (_, k) => ({ n: k + 1, freq: freq[k + 1], delay: delay[k + 1], recent: recent[k + 1] }))
 }
 
 // Combinazioni che la gente gioca spesso: date (<=31), sequenze, stessa decina, progressioni.
@@ -26,9 +28,9 @@ export function isPopular(c) {
   return false
 }
 
-// mode: 'casuale' | 'frequenti' | 'ritardatari'
+// mode: 'casuale' | 'fortunati' (più usciti nelle ultime 100) | 'frequenti' | 'ritardatari'
 export function generate(k, st, mode = 'casuale', exclude = new Set()) {
-  const w = st.map((x) => (mode === 'frequenti' ? x.freq + 1 : mode === 'ritardatari' ? x.delay + 1 : 1))
+  const w = st.map((x) => (mode === 'frequenti' ? x.freq + 1 : mode === 'fortunati' ? (x.recent + 1) ** 2 : mode === 'ritardatari' ? x.delay + 1 : 1))
   for (let tries = 0; tries < 5000; tries++) {
     const pick = new Set()
     while (pick.size < k) {
@@ -50,3 +52,9 @@ export function nextSaturday(from = new Date()) {
 
 // Confronta una giocata con l'estrazione: quanti numeri presi
 export const hits = (play, drawn) => play.filter((n) => drawn.includes(n)).length
+
+// Probabilità reale di vincere con una giocata (1 su N): identica per qualsiasi combinazione.
+export function odds(game, k) {
+  if (game === 'superenalotto') return 622614630
+  return [0, 18, 400.5, 11748, 511038, 43949268][k]
+}

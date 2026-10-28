@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { stats, isPopular, generate, nextSaturday, hits } from './engine.js'
+import { stats, isPopular, generate, nextSaturday, hits, odds } from './engine.js'
 
 test('stats conta frequenza e ritardo', () => {
   const st = stats([[1, 2], [2, 3]])
@@ -17,7 +17,7 @@ test('isPopular riconosce schemi comuni', () => {
 
 test('generate rispetta i vincoli', () => {
   const st = stats([[1, 2, 3, 4, 5, 6]])
-  for (const mode of ['casuale', 'frequenti', 'ritardatari']) for (let i = 0; i < 200; i++) {
+  for (const mode of ['casuale', 'fortunati', 'frequenti', 'ritardatari']) for (let i = 0; i < 200; i++) {
     const c = generate(6, st, mode)
     assert.equal(new Set(c).size, 6)
     assert.ok(c.every((n) => n >= 1 && n <= 90))
@@ -30,4 +30,9 @@ test('nextSaturday e hits', () => {
   assert.equal(nextSaturday(new Date('2026-10-28T12:00:00')), '2026-10-31')
   assert.equal(nextSaturday(new Date('2026-10-31T12:00:00')), '2026-10-31')
   assert.equal(hits([1, 2, 3], [3, 2, 9]), 2)
+})
+
+test('odds', () => {
+  assert.equal(odds('superenalotto', 6), 622614630)
+  assert.equal(odds('lotto', 2), 400.5)
 })

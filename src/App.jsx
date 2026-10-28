@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { WHEELS, stats, generate, nextSaturday, hits } from './engine.js'
+import { WHEELS, stats, generate, nextSaturday, hits, odds } from './engine.js'
 
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } }
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch { /* storage non disponibile */ } }
@@ -75,7 +75,7 @@ export default function App() {
             <label>Giocata <select value={size} onChange={(e) => setSize(+e.target.value)}>{[[1, 'Estratto'], [2, 'Ambo'], [3, 'Terno'], [4, 'Quaterna'], [5, 'Cinquina']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
           </>}
           <label>Criterio <select value={mode} onChange={(e) => setMode(e.target.value)}>
-            <option value="casuale">Casuale</option><option value="frequenti">Più frequenti</option><option value="ritardatari">Ritardatari</option>
+            <option value="casuale">Casuale</option><option value="fortunati">Numeri fortunati</option><option value="frequenti">Più frequenti</option><option value="ritardatari">Ritardatari</option>
           </select></label>
           <label>Quante <select value={count} onChange={(e) => setCount(+e.target.value)}>{[1, 2, 3, 5, 10].map((n) => <option key={n}>{n}</option>)}</select></label>
           <button className="primary" onClick={propose}>Genera</button>
@@ -83,6 +83,10 @@ export default function App() {
 
         {proposals.length > 0 && <div className="proposals">
           {proposals.map((p, i) => <div key={i}><Balls nums={p} /></div>)}
+          <p className="muted small">
+            Probabilità di vincita di ciascuna: 1 su {odds(game, k).toLocaleString('it-IT')} ({(100 / odds(game, k)).toLocaleString('it-IT', { maximumSignificantDigits: 2 })}%).
+            {mode === 'fortunati' && ' I numeri fortunati sono quelli usciti più spesso nelle ultime 100 estrazioni: la probabilità resta la stessa.'}
+          </p>
           <button onClick={keep}>Salva come giocate per sabato</button>
         </div>}
 
