@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import Checker from './Checker.jsx'
 import { WHEELS, stats, generate, nextSaturday, hits, odds } from './engine.js'
 
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } }
@@ -10,6 +11,7 @@ const Balls = ({ nums, hit = [] }) => (
 export default function App() {
   const [se, setSe] = useState(null)
   const [lotto, setLotto] = useState(null)
+  const [quote, setQuote] = useState({})
   const [err, setErr] = useState('')
   const [game, setGame] = useState('superenalotto')
   const [mode, setMode] = useState('casuale')
@@ -24,6 +26,7 @@ export default function App() {
     Promise.all(['superenalotto', 'lotto'].map((f) => fetch(`data/${f}.json`).then((r) => { if (!r.ok) throw new Error(f); return r.json() })))
       .then(([a, b]) => { setSe(a); setLotto(b) })
       .catch(() => setErr('Impossibile caricare lo storico delle estrazioni.'))
+    fetch('data/superenalotto_quote.json').then((r) => (r.ok ? r.json() : {})).then(setQuote).catch(() => {})
   }, [])
 
   const draws = useMemo(() => {
@@ -112,6 +115,8 @@ export default function App() {
           })}
         </ul>
       </section>}
+
+      <Checker se={se} lotto={lotto} quote={quote} />
 
       <section className="card">
         <h2>Ultima estrazione · {last[0]}</h2>

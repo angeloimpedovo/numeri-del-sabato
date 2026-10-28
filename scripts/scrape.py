@@ -62,7 +62,31 @@ def scrape(kind, first_year):
     path.write_text(json.dumps(data, separators=(",", ":")))
     print(kind, "totale", len(data), file=sys.stderr)
 
+QKEYS = {"Punti 6": "6", "Punti 5 + Jolly": "5+1", "Punti 5": "5", "Punti 4": "4", "Punti 3": "3", "Punti 2": "2",
+         "Punti 5 + Superstar": "5S", "Punti 4 + Superstar": "4S", "Punti 3 + Superstar": "3S",
+         "Punti 2 + Superstar": "2S", "Punti 1 + Superstar": "1S", "Punti 0 + Superstar": "0S"}
+
+def parse_quote(html):
+    q = {}
+    for name, val in re.findall(r'<td class="lottoBG colorWH">([^<]+)</td>\s*<td>([\d.,]+) &euro;', html):
+        if name.strip() in QKEYS: q[QKEYS[name.strip()]] = float(val.replace(".", "").replace(",", "."))
+    return q
+
+def scrape_quote(since="2025-01-01"):
+    # quote premi SuperEnalotto: una pagina per concorso, quindi solo quelli recenti
+    path = OUT / "superenalotto_quote.json"
+    q = json.loads(path.read_text()) if path.exists() else {}
+    for d in json.loads((OUT / "superenalotto.json").read_text()):
+        if d[0] < since or d[0] in q: continue
+        y, m, dd = d[0].split("-")
+        got = parse_quote(get(f"{BASE}/superenalotto/risultati/superenalotto-estrazione-del-{dd}-{m}-{y}"))
+        if "2" in got: q[d[0]] = got
+        time.sleep(0.3)
+    path.write_text(json.dumps(q, separators=(",", ":"), sort_keys=True))
+    print("quote", len(q), file=sys.stderr)
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     scrape("lotto", 1871)
     scrape("superenalotto", 1997)
+    scrape_quote()
