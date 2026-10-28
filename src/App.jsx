@@ -77,7 +77,7 @@ export default function App() {
           <label>Criterio <select value={mode} onChange={(e) => setMode(e.target.value)}>
             <option value="casuale">Casuale</option><option value="fortunati">Numeri fortunati</option><option value="frequenti">Più frequenti</option><option value="ritardatari">Ritardatari</option>
           </select></label>
-          <label>Quante <select value={count} onChange={(e) => setCount(+e.target.value)}>{[1, 2, 3, 5, 10].map((n) => <option key={n}>{n}</option>)}</select></label>
+          <label>Quante <select value={count} onChange={(e) => setCount(+e.target.value)}>{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => <option key={n}>{n}</option>)}</select></label>
           <button className="primary" onClick={propose}>Genera</button>
         </div>
 
