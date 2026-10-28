@@ -14,5 +14,6 @@ npm run dev
 npm test
 ```
 
-Un workflow GitHub Actions scarica le nuove estrazioni ogni sabato sera e ripubblica il sito su GitHub Pages.
+Un workflow GitHub Actions scarica le nuove estrazioni ogni sabato sera e li salva nel repository: Vercel ripubblica il sito da solo.
+Sito: https://numeri-del-sabato.vercel.app
 Le giocate salvate restano nel browser (localStorage) e vengono confrontate con l'estrazione del sabato.

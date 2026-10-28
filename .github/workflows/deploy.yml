@@ -1,4 +1,4 @@
-name: Aggiorna dati e pubblica
+name: Aggiorna dati
 on:
   push:
     branches: [main]
@@ -8,11 +8,8 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-  pages: write
-  id-token: write
-concurrency: { group: pages, cancel-in-progress: false }
 jobs:
-  build:
+  update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,13 +21,4 @@ jobs:
           git add public/data && git diff --cached --quiet || (git commit -m "Aggiorna estrazioni" && git push)
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
-      - run: npm ci && npm test && npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with: { path: dist }
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: { name: github-pages, url: '${{ steps.d.outputs.page_url }}' }
-    steps:
-      - id: d
-        uses: actions/deploy-pages@v4
+      - run: npm ci && npm test && npm run build  # il push dei nuovi dati fa ripubblicare Vercel
