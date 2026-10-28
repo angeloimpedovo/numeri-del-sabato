@@ -1,0 +1,36 @@
+name: Aggiorna dati e pubblica
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '30 21 * * 6'   # sabato sera dopo l'estrazione (UTC)
+    - cron: '0 8 * * 0'     # domenica mattina, nel caso il sito non fosse ancora aggiornato
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency: { group: pages, cancel-in-progress: false }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scarica nuove estrazioni
+        if: github.event_name != 'push'
+        run: |
+          python3 scripts/scrape.py
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git add public/data && git diff --cached --quiet || (git commit -m "Aggiorna estrazioni" && git push)
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci && npm test && npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: dist }
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: { name: github-pages, url: '${{ steps.d.outputs.page_url }}' }
+    steps:
+      - id: d
+        uses: actions/deploy-pages@v4
