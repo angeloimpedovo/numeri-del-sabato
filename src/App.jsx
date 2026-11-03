@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Checker from './Checker.jsx'
-import { WHEELS, stats, generate, nextSaturday, hits, odds } from './engine.js'
+import { WHEELS, stats, generate, nextSaturday, hits, odds, pairCounts, generateAI, backtestAI } from './engine.js'
 
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } }
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch { /* storage non disponibile */ } }
@@ -14,7 +14,7 @@ export default function App() {
   const [quote, setQuote] = useState({})
   const [err, setErr] = useState('')
   const [game, setGame] = useState('superenalotto')
-  const [mode, setMode] = useState('casuale')
+  const [mode, setMode] = useState('ai')
   const [wheel, setWheel] = useState(0)
   const [size, setSize] = useState(2)
   const [count, setCount] = useState(3)
@@ -36,8 +36,11 @@ export default function App() {
   const st = useMemo(() => stats(draws), [draws])
   const past = useMemo(() => new Set(game === 'superenalotto' ? draws.map((d) => [...d].sort((a, b) => a - b).join('-')) : []), [game, draws])
 
+  const pairs = useMemo(() => pairCounts(draws), [draws])
+  const [bt, setBt] = useState(null)
+  useEffect(() => setBt(null), [draws, size])
   const k = game === 'superenalotto' ? 6 : size
-  const propose = () => setProposals(Array.from({ length: count }, () => generate(k, st, mode, past)))
+  const propose = () => setProposals(Array.from({ length: count }, () => (mode === 'ai' ? generateAI(k, st, pairs, past) : generate(k, st, mode, past))))
   const keep = () => {
     const next = [...plays, ...proposals.map((nums) => ({ date: saturday, game, wheel: game === 'lotto' ? wheel : null, nums }))]
     setPlays(next); save('plays', next); setProposals([])
@@ -78,16 +81,22 @@ export default function App() {
             <label>Giocata <select value={size} onChange={(e) => setSize(+e.target.value)}>{[[1, 'Estratto'], [2, 'Ambo'], [3, 'Terno'], [4, 'Quaterna'], [5, 'Cinquina']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
           </>}
           <label>Criterio <select value={mode} onChange={(e) => setMode(e.target.value)}>
-            <option value="casuale">Casuale</option><option value="fortunati">Numeri fortunati</option><option value="frequenti">Più frequenti</option><option value="ritardatari">Ritardatari</option>
+            <option value="ai">Scelta AI</option><option value="casuale">Casuale</option><option value="fortunati">Numeri fortunati</option><option value="frequenti">Più frequenti</option><option value="ritardatari">Ritardatari</option>
           </select></label>
           <label>Quante <select value={count} onChange={(e) => setCount(+e.target.value)}>{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => <option key={n}>{n}</option>)}</select></label>
           <button className="primary" onClick={propose}>Genera</button>
         </div>
 
+        {mode === 'ai' && <p className="small">
+          <button onClick={() => setBt(backtestAI(draws, k, 500))}>Verifica l'algoritmo sullo storico</button>
+          {bt && <span className="muted"> Sulle ultime {bt.n} estrazioni ha preso in media {bt.ai.toFixed(3)} numeri, il caso ne prende {bt.random.toFixed(3)}.</span>}
+        </p>}
+
         {proposals.length > 0 && <div className="proposals">
           {proposals.map((p, i) => <div key={i}><Balls nums={p} /></div>)}
           <p className="muted small">
             Probabilità di vincita di ciascuna: 1 su {odds(game, k).toLocaleString('it-IT')} ({(100 / odds(game, k)).toLocaleString('it-IT', { maximumSignificantDigits: 2 })}%).
+            {mode === 'ai' && ' La Scelta AI incrocia frequenza storica, frequenza recente, ritardo e coppie che escono spesso insieme.'}
             {mode === 'fortunati' && ' I numeri fortunati sono quelli usciti più spesso nelle ultime 100 estrazioni: la probabilità resta la stessa.'}
           </p>
           <button onClick={keep}>Salva come giocate per sabato</button>

@@ -63,3 +63,17 @@ test('seWin', () => {
   assert.equal(seWin([23, 34, 44, 48, 64, 1], draw, null).gross, null)
   assert.equal(seWin([23, 34, 44, 48, 64, 29], draw, q).gross, null) // 5+1 senza vincitori
 })
+
+import { pairCounts, generateAI, backtestAI } from './engine.js'
+
+test('generateAI e backtest', () => {
+  const draws = Array.from({ length: 150 }, () => generate(6, stats([]), 'casuale'))
+  const st = stats(draws), p = pairCounts(draws)
+  assert.equal(p[draws[0][0] * 91 + draws[0][1]] > 0, true)
+  for (let i = 0; i < 50; i++) {
+    const c = generateAI(6, st, p)
+    assert.equal(new Set(c).size, 6); assert.ok(!isPopular(c)); assert.ok(c.every((n) => n >= 1 && n <= 90))
+  }
+  const b = backtestAI(draws, 6, 20)
+  assert.equal(b.n, 20); assert.ok(b.ai >= 0 && b.ai <= 6); assert.equal(b.random, 0.4)
+})

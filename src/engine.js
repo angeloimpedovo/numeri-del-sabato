@@ -101,3 +101,59 @@ export function seWin(nums, draw, quote, superstar = null) {
   const net = (v) => (v > 500 ? v - (v - 500) * 0.2 : v) // 20% sulla parte oltre 500 €
   return { m, cat, ssHit, gross: base + ss, net: Math.round((net(base) + net(ss)) * 100) / 100 }
 }
+
+// --- Scelta AI: algoritmo combinato ---
+// Incrocia frequenza storica, frequenza recente, ritardo e affinità di coppia.
+// È descrittivo: sullo storico non batte il caso (vedi backtestAI), ma è il criterio più "informato".
+
+// pairs[a*91+b]: quante volte a e b sono usciti nella stessa estrazione
+export function pairCounts(draws) {
+  const p = new Uint32Array(91 * 91)
+  for (const d of draws) for (const a of d) for (const b of d) if (a !== b) p[a * 91 + b]++
+  return p
+}
+
+const z = (arr) => {
+  const m = arr.reduce((a, b) => a + b, 0) / arr.length
+  const sd = Math.sqrt(arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length) || 1
+  return arr.map((v) => (v - m) / sd)
+}
+
+export function aiScores(st) {
+  const f = z(st.map((x) => x.freq)), r = z(st.map((x) => x.recent)), d = z(st.map((x) => x.delay))
+  return st.map((x, i) => ({ n: x.n, score: 0.4 * r[i] + 0.3 * f[i] + 0.3 * d[i] }))
+}
+
+export function generateAI(k, st, pairs, exclude = new Set()) {
+  const base = aiScores(st)
+  for (let tries = 0; tries < 2000; tries++) {
+    const pick = []
+    while (pick.length < k) {
+      // punteggio del numero + affinità con quelli già scelti, poi estrazione pesata (softmax)
+      const cand = base.filter((x) => !pick.includes(x.n)).map((x) => {
+        const aff = pick.reduce((a, p) => a + pairs[p * 91 + x.n], 0) / (pick.length || 1)
+        return { n: x.n, s: x.score + 0.002 * aff }
+      })
+      const w = cand.map((c) => Math.exp(1.5 * c.s)), tot = w.reduce((a, b) => a + b, 0)
+      let r = (crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32) * tot
+      const i = w.findIndex((x) => (r -= x) < 0)
+      pick.push(cand[i < 0 ? cand.length - 1 : i].n)
+    }
+    const c = pick.sort((a, b) => a - b)
+    if (!isPopular(c) && !exclude.has(c.join('-'))) return c
+  }
+  throw new Error('nessuna combinazione valida trovata')
+}
+
+// Gioca l'algoritmo sulle ultime n estrazioni usando solo i dati precedenti a ciascuna.
+// Restituisce media dei numeri presi: algoritmo vs attesa del caso.
+export function backtestAI(draws, k, n = 200) {
+  n = Math.min(n, draws.length - 100)
+  let got = 0
+  for (let i = draws.length - n; i < draws.length; i++) {
+    const past = draws.slice(0, i)
+    got += hits(generateAI(k, stats(past), pairCounts(past)), draws[i])
+  }
+  const per = draws[draws.length - 1].length
+  return { n, ai: got / n, random: (k * per) / 90 }
+}
